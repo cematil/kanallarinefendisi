@@ -254,7 +254,7 @@
             installBtn.style.display = 'flex';
         });
 
-        // Sayfa yüklendiğinde (veya tarayıcı desteğine göre) doğrudan Yükle butonunu görünür kılmak için tetikleyici
+        // Sayfa yüklendiğinde mobil cihazlarda Yükle butonunu görünür kılmak için tetikleyici eklenmiştir
         window.addEventListener('DOMContentLoaded', () => {
             installBtn.style.display = 'flex';
             renderCountries(countries);
@@ -271,7 +271,8 @@
                     installBtn.style.display = 'none';
                 });
             } else {
-                alert("Tarayıcınız veya cihazınız bu otomatik yüklemeyi doğrudan desteklemiyor olabilir. Tarayıcı menüsünden 'Ana Ekrana Ekle' seçeneğini kullanabilirsiniz.");
+                // Tarayıcı otomatik tetiklemediğinde kullanıcıya pratik yönlendirme sağlanır
+                alert("Uygulamayı yüklemek için tarayıcınızın sağ üst köşesindeki menü simgesine tıklayıp 'Ana Ekrana Ekle' seçeneğini kullanabilirsiniz.");
             }
         }
 
@@ -733,4 +734,3 @@
     </script>
 </body>
 </html>
-```[cite: 9]
