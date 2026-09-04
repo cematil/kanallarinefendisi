@@ -4,7 +4,7 @@
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/kanallarinefendisi/sw.js')
+      navigator.serviceWorker.register('./sw.js')
         .then((reg) => console.log('Service Worker Kayıt Başarılı:', reg.scope))
         .catch((err) => console.log('Service Worker Kayıt Hatası:', err));
     });
@@ -19,7 +19,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
     <!-- SEO Entegrasyonu -->
-    <title>Kanalların Efendisi | Global IPTV ve Canlı Yayın Medya Portalı</title>
+    <title>Kanalların Efendisi | Global IPTV dan Canlı Yayın Medya Portalı</title>
     <meta name="description" content="Kanalların Efendisi ile dünyadaki yüzlerce ulusal ve yerel TV kanalını kesintisiz, yüksek kalitede ve ücretsiz olarak tek bir ekrandan izleyin.">
     <meta name="keywords" content="kanalların efendisi, iptv izle, canlı tv, global media portal, online televizyon, kesintisiz yayın">
     <meta name="author" content="Kanalların Efendisi">
@@ -48,6 +48,9 @@
         .navbar { height: 65px; background: #0f141d; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #1e293b; z-index: 100; }
         .nav-brand { font-size: 1.2rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 10px; cursor: pointer; letter-spacing: -0.5px; }
         .nav-brand span { background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-right-actions { display: flex; align-items: center; gap: 10px; }
+        .install-btn { background: #0284c7; border: none; color: white; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: none; align-items: center; gap: 6px; transition: 0.2s; }
+        .install-btn:hover { background: #0369a1; }
         .menu-btn { background: #1e293b; border: none; color: #f1f5f9; font-size: 1.2rem; cursor: pointer; padding: 10px; border-radius: 8px; display: none; }
 
         .main-layout { display: flex; flex: 1; position: relative; overflow: hidden; }
@@ -95,6 +98,26 @@
         .video-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; display: flex; align-items: center; justify-content: center; }
         video { width: 100%; height: 100%; object-fit: contain; }
 
+        /* Tam ekranda görünen Geri Dön butonu */
+        .fullscreen-back-btn { position: absolute; top: 15px; left: 15px; background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: none; align-items: center; gap: 6px; z-index: 1000; backdrop-filter: blur(4px); transition: 0.2s; }
+        .fullscreen-back-btn:hover { background: rgba(2, 132, 199, 0.8); }
+        :fullscreen .fullscreen-back-btn, :-webkit-full-screen .fullscreen-back-btn { display: flex; }
+
+        /* Tam ekran modunda üstte çıkacak Tam Ekranı Kapatma Butonu */
+        .fullscreen-exit-custom-btn { position: absolute; top: 15px; right: 15px; background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: none; align-items: center; gap: 6px; z-index: 1000; backdrop-filter: blur(4px); transition: 0.2s; }
+        .fullscreen-exit-custom-btn:hover { background: rgba(239, 68, 68, 0.8); }
+        :fullscreen .fullscreen-exit-custom-btn, :-webkit-full-screen .fullscreen-exit-custom-btn { display: flex; }
+
+        /* Tam ekran modunda altta çıkacak kanal logoları şeridi */
+        .fullscreen-channel-bar { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(15, 20, 29, 0.85); padding: 10px 15px; display: none; gap: 10px; overflow-x: auto; z-index: 1000; backdrop-filter: blur(6px); border-top: 1px solid rgba(255, 255, 255, 0.1); white-space: nowrap; }
+        :fullscreen .fullscreen-channel-bar, :-webkit-full-screen .fullscreen-channel-bar { display: flex; }
+        
+        .fs-channel-item { display: inline-flex; align-items: center; gap: 8px; background: rgba(17, 24, 39, 0.8); border: 1px solid #1e293b; padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
+        .fs-channel-item:hover { background: #1e293b; border-color: #38bdf8; }
+        .fs-channel-item.active { background: #0284c7; border-color: #38bdf8; }
+        .fs-channel-logo { width: 24px; height: 24px; object-fit: contain; background: #1e293b; border-radius: 4px; padding: 2px; }
+        .fs-channel-name { font-size: 0.85rem; color: #f1f5f9; }
+
         .custom-controls { background: #0f141d; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1e293b; }
         .controls-left, .controls-right { display: flex; align-items: center; gap: 15px; }
         .ctrl-btn { background: none; border: none; color: #cbd5e1; font-size: 1.1rem; cursor: pointer; transition: color 0.2s; padding: 5px; }
@@ -135,9 +158,14 @@
         <div class="nav-brand" onclick="goHome()">
             <i class="fa-solid fa-vault"></i> <span>Kanalların Efendisi</span>
         </div>
-        <button class="menu-btn" id="menuToggle" onclick="toggleSidebar()">
-            <i class="fa-solid fa-bars"></i>
-        </button>
+        <div class="nav-right-actions">
+            <button class="install-btn" id="installBtn" onclick="installApp()">
+                <i class="fa-solid fa-download"></i> Yükle
+            </button>
+            <button class="menu-btn" id="menuToggle" onclick="toggleSidebar()">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
     </div>
 
     <div class="main-layout">
@@ -171,6 +199,16 @@
             </div>
             <div class="video-card">
                 <div class="video-wrapper" id="videoWrapper">
+                    <button class="fullscreen-back-btn" onclick="exitFullscreenAndGoBack()">
+                        <i class="fa-solid fa-arrow-left"></i> Kanal Listesi
+                    </button>
+                    <!-- Tam ekranı kapatma butonu -->
+                    <button class="fullscreen-exit-custom-btn" onclick="toggleFullscreen()">
+                        <i class="fa-solid fa-compress"></i> Tam Ekrandan Çık
+                    </button>
+                    <!-- Tam ekranda altta çıkacak kanal logoları şeridi -->
+                    <div class="fullscreen-channel-bar" id="fullscreenChannelBar"></div>
+                    
                     <video id="videoPlayer" playsinline webkit-playsinline></video>
                 </div>
                 <div class="custom-controls">
@@ -206,6 +244,33 @@
 
     <script>
         document.addEventListener('contextmenu', e => e.preventDefault());
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'flex';
+        });
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Kullanıcı PWA kurulumunu kabul etti');
+                    }
+                    deferredPrompt = null;
+                    installBtn.style.display = 'none';
+                });
+            }
+        }
+
+        window.addEventListener('appinstalled', (evt) => {
+            installBtn.style.display = 'none';
+            console.log('Uygulama başarıyla yüklendi');
+        });
 
         const countries = [
             { code: "tr", name: "Türkiye", flag: "fi fi-tr" },
@@ -377,6 +442,17 @@
             goHome();
         }
 
+        function exitFullscreenAndGoBack() {
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+            toggleSidebar();
+        }
+
         function parseProtectedData(data) {
             const lines = data.split('\n');
             let channels = [];
@@ -422,6 +498,7 @@
             }
             allChannels = channels;
             renderChannels(allChannels);
+            renderFullscreenChannels(allChannels);
         }
 
         function renderChannels(channels) {
@@ -454,6 +531,38 @@
             });
         }
 
+        function renderFullscreenChannels(channels) {
+            const fsBar = document.getElementById('fullscreenChannelBar');
+            fsBar.innerHTML = '';
+
+            channels.forEach((channel) => {
+                const item = document.createElement('div');
+                item.className = 'fs-channel-item';
+                if (channel.url === currentUrl) item.classList.add('active');
+
+                let logoHtml = channel.logo 
+                    ? `<img src="${channel.logo}" class="fs-channel-logo" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/tv.svg';">`
+                    : `<div class="fs-channel-logo" style="display:flex;align-items:center;justify-content:center;color:#38bdf8;"><i class="fa-solid fa-tv" style="font-size:0.7rem;"></i></div>`;
+
+                item.innerHTML = `
+                    ${logoHtml}
+                    <span class="fs-channel-name">${channel.name}</span>
+                `;
+
+                item.onclick = () => {
+                    // Normal listedeki ilgili elemanı da bulup aktif yapalım
+                    let items = document.querySelectorAll('.channel-item');
+                    let targetElement = null;
+                    allChannels.forEach((c, idx) => {
+                        if (c.url === channel.url && items[idx]) targetElement = items[idx];
+                    });
+                    playChannel(channel, targetElement);
+                };
+
+                fsBar.appendChild(item);
+            });
+        }
+
         function showAlert(message, isSuccess = false) {
             const alertBox = document.getElementById('streamAlert');
             const alertText = document.getElementById('alertText');
@@ -476,6 +585,16 @@
         function playChannel(channel, element) {
             document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
             if(element) element.classList.add('active');
+
+            // Tam ekran şeridindeki aktifliği güncelle
+            document.querySelectorAll('.fs-channel-item').forEach(el => {
+                el.classList.remove('active');
+                if(el.innerText.includes(channel.name)) el.classList.add('active');
+            });
+
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('active');
+            }
 
             currentUrl = channel.url;
             document.getElementById('currentChannelName').innerHTML = `<i class="fa-solid fa-circle-dot" style="color: #22c55e; font-size: 0.8rem;"></i> ${channel.name}`;
