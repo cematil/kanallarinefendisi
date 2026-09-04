@@ -409,6 +409,7 @@
 
         const countries = [
             { code: "tr", name: "Türkiye", flag: "fi fi-tr" },
+            { code: "tryedek", name: "Türkiye Yedek", flag: "fi fi-tr" },
             { code: "ad", name: "Andorra", flag: "fi fi-ad" },
             { code: "ae", name: "Birleşik Arap Emirlikleri", flag: "fi fi-ae" },
             { code: "af", name: "Afganistan", flag: "fi fi-af" },
@@ -563,7 +564,7 @@
             grid.innerHTML = '';
             list.forEach(c => {
                 const card = document.createElement('div');
-                let isTr = (c.code === 'tr');
+                let isTr = (c.code === 'tr' || c.code === 'tryedek');
                 card.className = `country-card ${isTr ? 'tr-highlight' : ''}`;
                 card.innerHTML = `
                     <span class="${c.flag}"></span>
