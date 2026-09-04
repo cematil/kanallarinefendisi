@@ -49,7 +49,7 @@
         .nav-brand { font-size: 1.2rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 10px; cursor: pointer; letter-spacing: -0.5px; }
         .nav-brand span { background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .nav-right-actions { display: flex; align-items: center; gap: 10px; }
-        .install-btn { background: #0284c7; border: none; color: white; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: none; align-items: center; gap: 6px; transition: 0.2s; }
+        .install-btn { background: #0284c7; border: none; color: white; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
         .install-btn:hover { background: #0369a1; }
         .menu-btn { background: #1e293b; border: none; color: #f1f5f9; font-size: 1.2rem; cursor: pointer; padding: 10px; border-radius: 8px; display: none; }
 
@@ -254,6 +254,12 @@
             installBtn.style.display = 'flex';
         });
 
+        // Sayfa yüklendiğinde (veya tarayıcı desteğine göre) doğrudan Yükle butonunu görünür kılmak için tetikleyici
+        window.addEventListener('DOMContentLoaded', () => {
+            installBtn.style.display = 'flex';
+            renderCountries(countries);
+        });
+
         function installApp() {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
@@ -264,6 +270,8 @@
                     deferredPrompt = null;
                     installBtn.style.display = 'none';
                 });
+            } else {
+                alert("Tarayıcınız veya cihazınız bu otomatik yüklemeyi doğrudan desteklemiyor olabilir. Tarayıcı menüsünden 'Ana Ekrana Ekle' seçeneğini kullanabilirsiniz.");
             }
         }
 
@@ -366,10 +374,6 @@
         let currentUrl = "";
         const video = document.getElementById('videoPlayer');
         let hls = null;
-
-        window.addEventListener('DOMContentLoaded', () => {
-            renderCountries(countries);
-        });
 
         function renderCountries(list) {
             const grid = document.getElementById('countryGrid');
@@ -550,7 +554,6 @@
                 `;
 
                 item.onclick = () => {
-                    // Normal listedeki ilgili elemanı da bulup aktif yapalım
                     let items = document.querySelectorAll('.channel-item');
                     let targetElement = null;
                     allChannels.forEach((c, idx) => {
@@ -586,7 +589,6 @@
             document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
             if(element) element.classList.add('active');
 
-            // Tam ekran şeridindeki aktifliği güncelle
             document.querySelectorAll('.fs-channel-item').forEach(el => {
                 el.classList.remove('active');
                 if(el.innerText.includes(channel.name)) el.classList.add('active');
@@ -731,3 +733,4 @@
     </script>
 </body>
 </html>
+```[cite: 9]
