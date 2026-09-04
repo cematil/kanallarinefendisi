@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => console.log('Service Worker Kayıt Başarılı:', reg.scope))
+        .catch((err) => console.log('Service Worker Kayıt Hatası:', err));
+    });
+  }
+</script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f141d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- SEO Entegrasyonu -->
+    <title>Kanalların Efendisi | Global IPTV ve Canlı Yayın Medya Portalı</title>
+    <meta name="description" content="Kanalların Efendisi ile dünyadaki yüzlerce ulusal ve yerel TV kanalını kesintisiz, yüksek kalitede ve ücretsiz olarak tek bir ekrandan izleyin.">
+    <meta name="keywords" content="kanalların efendisi, iptv izle, canlı tv, global media portal, online televizyon, kesintisiz yayın">
+    <meta name="author" content="Kanalların Efendisi">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Kanalların Efendisi | Global IPTV ve Canlı Yayın Medya Portalı">
+    <meta property="og:description" content="Dünya çapındaki binlerce canlı TV kanalına tek tıkla ulaşın, kesintisiz medya deneyimini yaşayın.">
+    <meta property="og:type" content="website">
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+        body { font-family: 'Inter', 'Segoe UI', Roboto, sans-serif; background-color: #07090e; color: #f1f5f9; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 5, 8, 0.9); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; backdrop-filter: blur(8px); }
+        .modal-card { background: #0f141d; border: 1px solid #1e293b; max-width: 550px; width: 100%; border-radius: 16px; padding: 30px; box-shadow: 0 25px 50px rgba(0,0,0,0.9); display: flex; flex-direction: column; gap: 18px; }
+        .modal-card h2 { color: #38bdf8; font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
+        .modal-body { font-size: 0.9rem; color: #94a3b8; line-height: 1.6; max-height: 42vh; overflow-y: auto; padding-right: 5px; }
+        .modal-btn { background: #0284c7; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 1rem; width: 100%; text-align: center; }
+        .modal-btn:hover { background: #0369a1; }
+
+        .stream-alert { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.95); color: white; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; z-index: 50; display: none; align-items: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        .stream-alert.success { background: rgba(34, 197, 94, 0.95); }
+
+        .navbar { height: 65px; background: #0f141d; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #1e293b; z-index: 100; }
+        .nav-brand { font-size: 1.2rem; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 10px; cursor: pointer; letter-spacing: -0.5px; }
+        .nav-brand span { background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .menu-btn { background: #1e293b; border: none; color: #f1f5f9; font-size: 1.2rem; cursor: pointer; padding: 10px; border-radius: 8px; display: none; }
+
+        .main-layout { display: flex; flex: 1; position: relative; overflow: hidden; }
+        
+        .countries-view { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; background: radial-gradient(circle at top right, #0f172a 0%, #07090e 60%); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .section-title { font-size: 1.15rem; color: #e2e8f0; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        
+        .global-search { background: #111827; border: 1px solid #334155; padding: 10px 15px; border-radius: 10px; color: white; width: 280px; outline: none; font-size: 0.9rem; transition: 0.2s; }
+        .global-search:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+
+        .country-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+        .country-card { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 16px 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s ease; }
+        .country-card:hover, .country-card:focus { background: #1e293b; border-color: #38bdf8; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); outline: none; }
+        .country-card.tr-highlight { border-color: #38bdf8; background: linear-gradient(135deg, #0c203a 0%, #111827 100%); box-shadow: 0 0 15px rgba(56, 189, 248, 0.15); }
+        
+        .fi { font-size: 1.8rem; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); flex-shrink: 0; }
+        .country-info { display: flex; flex-direction: column; overflow: hidden; }
+        .country-name { font-weight: 600; font-size: 0.9rem; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .country-code-lbl { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
+
+        .sidebar { width: 380px; background: #0f141d; display: flex; flex-direction: column; border-right: 1px solid #1e293b; transition: transform 0.3s ease; z-index: 90; display: none; }
+        .sidebar.active { display: flex; }
+        .sidebar-header { padding: 15px; background: #07090e; border-bottom: 1px solid #1e293b; display: flex; gap: 10px; align-items: center; }
+        .back-countries-btn { background: #1e293b; border: none; color: white; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+        .back-countries-btn:hover { background: #334155; }
+        
+        .search-box-wrapper { position: relative; flex: 1; }
+        .search-box-wrapper i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 0.9rem; }
+        .search-box { width: 100%; padding: 10px 10px 10px 36px; background: #111827; border: 1px solid #334155; color: white; border-radius: 8px; outline: none; font-size: 0.9rem; }
+        .search-box:focus { border-color: #38bdf8; }
+        
+        .channel-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .channel-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin-bottom: 6px; background: #111827; border-radius: 8px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .channel-item:hover, .channel-item:focus { background: #1e293b; outline: none; }
+        .channel-item.active { background: #0284c7; border-color: #38bdf8; font-weight: 600; }
+        
+        .channel-logo { width: 32px; height: 32px; object-fit: contain; background: #1e293b; border-radius: 6px; padding: 2px; flex-shrink: 0; }
+        .channel-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; color: #e2e8f0; flex: 1; }
+
+        .player-container { flex: 1; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; background: #07090e; overflow-y: auto; position: relative; }
+        .player-container.active { display: flex; }
+        
+        .video-card { width: 100%; max-width: 1000px; background: #0f141d; border-radius: 14px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.7); border: 1px solid #1e293b; display: flex; flex-direction: column; }
+        .video-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; display: flex; align-items: center; justify-content: center; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+
+        .custom-controls { background: #0f141d; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1e293b; }
+        .controls-left, .controls-right { display: flex; align-items: center; gap: 15px; }
+        .ctrl-btn { background: none; border: none; color: #cbd5e1; font-size: 1.1rem; cursor: pointer; transition: color 0.2s; padding: 5px; }
+        .ctrl-btn:hover { color: #38bdf8; }
+        .volume-slider { width: 80px; accent-color: #38bdf8; cursor: pointer; }
+        
+        .info-bar { width: 100%; max-width: 1000px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; padding: 0 5px; }
+        .channel-title-display { font-size: 1.05rem; font-weight: 500; color: #cbd5e1; display: flex; align-items: center; gap: 8px; }
+
+        @media (max-width: 768px) {
+            .menu-btn { display: block; }
+            .sidebar { position: absolute; height: 100%; transform: translateX(-100%); width: 85%; max-width: 320px; box-shadow: 5px 0 25px rgba(0,0,0,0.6); z-index: 100; }
+            .sidebar.active { transform: translateX(0); }
+            .player-container { padding: 10px; justify-content: flex-start; }
+            .video-card { max-height: 55vh; }
+            .global-search { width: 100%; }
+            .section-header { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="modal-overlay" id="disclaimerModal">
+        <div class="modal-card">
+            <h2><i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i> Kanalların Efendisi | Güvenlik & Yasal Bildirim Politikası</h2>
+            <div class="modal-body">
+                <p><strong>1. Genel Bilgilendirme ve Kapsam:</strong> Bu platform, genel erişime açık uluslararası topluluk arşivlerinde ve açık kaynak dizinlerinde yer alan yayın akışı meta verilerini listelemek amacıyla geliştirilmiştir. Sistem, harici kaynaklar arasında bir indeksleme arayüzü görevi görür.</p><br>
+                <p><strong>2. Sorumluluk Reddi (Disclaimer):</strong> Platform yöneticileri ve geliştiricileri, listelenen harici akışların, medya içeriklerinin veya logoların telif haklarına sahip değildir. İçerikler hiçbir surette bu sunucularda barındırılmaz, depolanmaz veya çoğaltılmaz.</p><br>
+                <p><strong>3. Üçüncü Taraf Sağlayıcılar:</strong> Sunulan tüm bağlantılar tamamen bağımsız üçüncü taraf harici sağlayıcılara aittir. Yayınların kesintisizliği, kalitesi, yasal uygunluğu veya güvenliği konusunda platformumuz hiçbir taahhütte bulunmaz ve yasal sorumluluk kabul etmez.</p><br>
+                <p><strong>4. Telif Hakkı ve İçerik Kaldırma (DMCA):</strong> Hak sahibi olduğunu iddia eden üçüncü taraflar, telif hakkı ihlali bildiriminde bulunabilir. Haklı görülen talepler doğrultusunda ilgili dizin verileri hızla incelenerek sistem indeksinden kaldırılacaktır.</p><br>
+                <p><strong>5. Güvenlik ve Kullanıcı Sorumluluğu:</strong> Kullanıcılar, bu platformu kullanarak üçüncü taraf yayın kaynaklarına erişim sağladıklarını ve tüm yasal sorumluluğun kendilerine ait olduğunu peşinen kabul etmiş sayılırlar.</p>
+            </div>
+            <button class="modal-btn" onclick="acceptDisclaimer()">Anladım ve Kabul Ediyorum</button>
+        </div>
+    </div>
+
+    <div class="navbar">
+        <div class="nav-brand" onclick="goHome()">
+            <i class="fa-solid fa-vault"></i> <span>Kanalların Efendisi</span>
+        </div>
+        <button class="menu-btn" id="menuToggle" onclick="toggleSidebar()">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
+
+    <div class="main-layout">
+        <div class="countries-view" id="countriesView">
+            <div class="section-header">
+                <div class="section-title"><i class="fa-solid fa-earth-americas" style="color: #38bdf8;"></i> Ülke ve Yayın Havuzu Seçimi</div>
+                <input type="text" id="countrySearch" class="global-search" placeholder="Ülke ara..." onkeyup="filterCountries()">
+            </div>
+            <div class="country-grid" id="countryGrid"></div>
+        </div>
+
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="back-countries-btn" onclick="goHome()" title="Ülkelere Dön">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="search-box-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="search" class="search-box" placeholder="Kanal ara..." onkeyup="filterChannels()">
+                </div>
+            </div>
+            <div class="channel-list" id="channelList">
+                <div style="padding: 20px; text-align: center; color: #64748b;">Kanallar yükleniyor...</div>
+            </div>
+        </div>
+
+        <div class="player-container" id="playerContainer" onclick="closeSidebarOnMobile()">
+            <div class="stream-alert" id="streamAlert">
+                <i class="fa-solid fa-triangle-exclamation" id="alertIcon"></i>
+                <span id="alertText">Bağlantı kontrol ediliyor...</span>
+            </div>
+            <div class="video-card">
+                <div class="video-wrapper" id="videoWrapper">
+                    <video id="videoPlayer" playsinline webkit-playsinline></video>
+                </div>
+                <div class="custom-controls">
+                    <div class="controls-left">
+                        <button class="ctrl-btn" onclick="goBackToCountries()" title="Geri Dön">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+                        <button class="ctrl-btn" id="playPauseBtn" onclick="togglePlayPause()" title="Oynat / Durdur">
+                            <i class="fa-solid fa-play" id="playPauseIcon"></i>
+                        </button>
+                        <button class="ctrl-btn" onclick="reloadStream()" title="Yenile">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="ctrl-btn" onclick="toggleMute()" id="muteBtn">
+                                <i class="fa-solid fa-volume-high" id="volumeIcon"></i>
+                            </button>
+                            <input type="range" min="0" max="1" step="0.05" value="1" class="volume-slider" id="volumeSlider" oninput="changeVolume(this.value)">
+                        </div>
+                    </div>
+                    <div class="controls-right">
+                        <button class="ctrl-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Tam Ekran">
+                            <i class="fa-solid fa-expand" id="fullscreenIcon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="info-bar">
+                <div class="channel-title-display" id="currentChannelName">İzlemek için bir kanal seçin 📺</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        const countries = [
+            { code: "tr", name: "Türkiye", flag: "fi fi-tr" },
+            { code: "ad", name: "Andorra", flag: "fi fi-ad" },
+            { code: "ae", name: "Birleşik Arap Emirlikleri", flag: "fi fi-ae" },
+            { code: "af", name: "Afganistan", flag: "fi fi-af" },
+            { code: "al", name: "Arnavutluk", flag: "fi fi-al" },
+            { code: "am", name: "Ermenistan", flag: "fi fi-am" },
+            { code: "ao", name: "Angola", flag: "fi fi-ao" },
+            { code: "ar", name: "Arjantin", flag: "fi fi-ar" },
+            { code: "at", name: "Avusturya", flag: "fi fi-at" },
+            { code: "au", name: "Avustralya", flag: "fi fi-au" },
+            { code: "az", name: "Azerbaycan", flag: "fi fi-az" },
+            { code: "ba", name: "Bosna Hersek", flag: "fi fi-ba" },
+            { code: "bd", name: "Bangladeş", flag: "fi fi-bd" },
+            { code: "be", name: "Belçika", flag: "fi fi-be" },
+            { code: "bg", name: "Bulgaristan", flag: "fi fi-bg" },
+            { code: "bh", name: "Bahreyn", flag: "fi fi-bh" },
+            { code: "bo", name: "Bolivya", flag: "fi fi-bo" },
+            { code: "br", name: "Brezilya", flag: "fi fi-br" },
+            { code: "by", name: "Belarus", flag: "fi fi-by" },
+            { code: "ca", name: "Kanada", flag: "fi fi-ca" },
+            { code: "ch", name: "İsviçre", flag: "fi fi-ch" },
+            { code: "cl", name: "Şili", flag: "fi fi-cl" },
+            { code: "cn", name: "Çin", flag: "fi fi-cn" },
+            { code: "co", name: "Kolombiya", flag: "fi fi-co" },
+            { code: "cu", name: "Küba", flag: "fi fi-cu" },
+            { code: "cy", name: "Kıbrıs", flag: "fi fi-cy" },
+            { code: "cz", name: "Çekya", flag: "fi fi-cz" },
+            { code: "de", name: "Almanya", flag: "fi fi-de" },
+            { code: "dk", name: "Danimarka", flag: "fi fi-dk" },
+            { code: "dz", name: "Cezayir", flag: "fi fi-dz" },
+            { code: "ee", name: "Estonya", flag: "fi fi-ee" },
+            { code: "eg", name: "Mısır", flag: "fi fi-eg" },
+            { code: "es", name: "İspanya", flag: "fi fi-es" },
+            { code: "fi", name: "Finlandiya", flag: "fi fi-fi" },
+            { code: "fr", name: "Fransa", flag: "fi fi-fr" },
+            { code: "gr", name: "Yunanistan", flag: "fi fi-gr" },
+            { code: "hr", name: "Hırvatistan", flag: "fi fi-hr" },
+            { code: "hu", name: "Macaristan", flag: "fi fi-hu" },
+            { code: "id", name: "Endonezya", flag: "fi fi-id" },
+            { code: "ie", name: "İrlanda", flag: "fi fi-ie" },
+            { code: "il", name: "İsrail", flag: "fi fi-il" },
+            { code: "in", name: "Hindistan", flag: "fi fi-in" },
+            { code: "iq", name: "Irak", flag: "fi fi-iq" },
+            { code: "ir", name: "İran", flag: "fi fi-ir" },
+            { code: "is", name: "İzlanda", flag: "fi fi-is" },
+            { code: "it", name: "İtalya", flag: "fi fi-it" },
+            { code: "jo", name: "Ürdün", flag: "fi fi-jo" },
+            { code: "jp", name: "Japonya", flag: "fi fi-jp" },
+            { code: "kr", name: "Güney Kore", flag: "fi fi-kr" },
+            { code: "kw", name: "Kuveyt", flag: "fi fi-kw" },
+            { code: "kz", name: "Kazakistan", flag: "fi fi-kz" },
+            { code: "lb", name: "Lübnan", flag: "fi fi-lb" },
+            { code: "lt", name: "Litvanya", flag: "fi fi-lt" },
+            { code: "lu", name: "Lüksemburg", flag: "fi fi-lu" },
+            { code: "lv", name: "Letonya", flag: "fi fi-lv" },
+            { code: "ly", name: "Libya", flag: "fi fi-ly" },
+            { code: "ma", name: "Fas", flag: "fi fi-ma" },
+            { code: "mx", name: "Meksika", flag: "fi fi-mx" },
+            { code: "my", name: "Malezya", flag: "fi fi-my" },
+            { code: "nl", name: "Hollanda", flag: "fi fi-nl" },
+            { code: "no", name: "Norveç", flag: "fi fi-no" },
+            { code: "nz", name: "Yeni Zelanda", flag: "fi fi-nz" },
+            { code: "pe", name: "Peru", flag: "fi fi-pe" },
+            { code: "ph", name: "Filipinler", flag: "fi fi-ph" },
+            { code: "pk", name: "Pakistan", flag: "fi fi-pk" },
+            { code: "pl", name: "Polonya", flag: "fi fi-pl" },
+            { code: "ps", name: "Filistin", flag: "fi fi-ps" },
+            { code: "pt", name: "Portekiz", flag: "fi fi-pt" },
+            { code: "qa", name: "Katar", flag: "fi fi-qa" },
+            { code: "ro", name: "Romanya", flag: "fi fi-ro" },
+            { code: "rs", name: "Sırbistan", flag: "fi fi-rs" },
+            { code: "ru", name: "Rusya", flag: "fi fi-ru" },
+            { code: "sa", name: "Suudi Arabistan", flag: "fi fi-sa" },
+            { code: "se", name: "İsveç", flag: "fi fi-se" },
+            { code: "sg", name: "Singapur", flag: "fi fi-sg" },
+            { code: "si", name: "Slovenya", flag: "fi fi-si" },
+            { code: "sk", name: "Slovakya", flag: "fi fi-sk" },
+            { code: "sy", name: "Suriye", flag: "fi fi-sy" },
+            { code: "th", name: "Tayland", flag: "fi fi-th" },
+            { code: "tn", name: "Tunus", flag: "fi fi-tn" },
+            { code: "tw", name: "Tayvan", flag: "fi fi-tw" },
+            { code: "ua", name: "Ukrayna", flag: "fi fi-ua" },
+            { code: "us", name: "Amerika Birleşik Devletleri", flag: "fi fi-us" },
+            { code: "uy", name: "Uruguay", flag: "fi fi-uy" },
+            { code: "ve", name: "Venezuela", flag: "fi fi-ve" },
+            { code: "vn", name: "Vietnam", flag: "fi fi-vn" },
+            { code: "za", name: "Güney Afrika", flag: "fi fi-za" }
+        ];
+
+        let allChannels = [];
+        let currentUrl = "";
+        const video = document.getElementById('videoPlayer');
+        let hls = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCountries(countries);
+        });
+
+        function renderCountries(list) {
+            const grid = document.getElementById('countryGrid');
+            grid.innerHTML = '';
+            list.forEach(c => {
+                const card = document.createElement('div');
+                let isTr = (c.code === 'tr');
+                card.className = `country-card ${isTr ? 'tr-highlight' : ''}`;
+                card.innerHTML = `
+                    <span class="${c.flag}"></span>
+                    <div class="country-info">
+                        <span class="country-name">${c.name}</span>
+                        <span class="country-code-lbl">${c.code.toUpperCase()}</span>
+                    </div>
+                `;
+                card.onclick = () => loadProtectedStream(c.code);
+                grid.appendChild(card);
+            });
+        }
+
+        function filterCountries() {
+            let query = document.getElementById('countrySearch').value.toLowerCase();
+            let filtered = countries.filter(c => c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query));
+            renderCountries(filtered);
+        }
+
+        function acceptDisclaimer() {
+            document.getElementById('disclaimerModal').style.display = 'none';
+        }
+
+        function loadProtectedStream(code) {
+            document.getElementById('countriesView').style.display = 'none';
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('playerContainer').classList.add('active');
+            if(window.innerWidth <= 768) {
+                document.getElementById('menuToggle').style.display = 'block';
+            }
+
+            document.getElementById('channelList').innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b;">${code.toUpperCase()} yerel dosyası okunuyor...</div>`;
+
+            const localFileName = `${code}.m3u`;
+
+            fetch(localFileName)
+                .then(res => {
+                    if (!res.ok) {
+                        return fetch(code).then(r => {
+                            if (!r.ok) throw new Error("Yerel dosya bulunamadı");
+                            return r.text();
+                        });
+                    }
+                    return res.text();
+                })
+                .then(data => parseProtectedData(data))
+                .catch(err => {
+                    document.getElementById('channelList').innerHTML = `<div style="padding:20px; color:#ef4444; text-align:center;">Bağlantı kurulamadı. (${code} dosyası bulunamadı)</div>`;
+                    console.error(err);
+                });
+        }
+
+        function goHome() {
+            if(hls) { hls.destroy(); video.src = ""; }
+            hideAlert();
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('playerContainer').classList.remove('active');
+            document.getElementById('countriesView').style.display = 'flex';
+            document.getElementById('menuToggle').style.display = 'none';
+        }
+
+        function goBackToCountries() {
+            goHome();
+        }
+
+        function parseProtectedData(data) {
+            const lines = data.split('\n');
+            let channels = [];
+            let currentLogo = "";
+            let rawName = "";
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                
+                if (line.startsWith('#EXTINF:')) {
+                    let logoMatch = line.match(/tvg-logo="([^"]*)"/);
+                    currentLogo = logoMatch ? logoMatch[1] : "";
+
+                    let nameParts = line.split(',');
+                    rawName = nameParts.length > 1 ? nameParts[1].trim() : "Bilinmeyen Kanal";
+                } else if (line && !line.startsWith('#')) {
+                    let streamUrl = line;
+                    
+                    let cleanName = rawName;
+                    
+                    if (!cleanName || cleanName.toLowerCase().includes('index.m3u') || cleanName.includes("like Gecko") || cleanName.includes("Mozilla/") || cleanName.includes("Chrome/") || cleanName.includes("Safari/")) {
+                        let parts = streamUrl.split('/');
+                        let lastPart = parts[parts.length - 1].split('?')[0];
+                        cleanName = lastPart ? lastPart.replace(/[-_]/g, ' ').toUpperCase() : "CANLI YAYIN";
+                    }
+
+                    if (cleanName.toUpperCase().includes('INDEX.M3U8') || cleanName.toUpperCase().includes('INDEX.M3U')) {
+                        let cleanUrlParts = streamUrl.split('/');
+                        let potentialName = cleanUrlParts[cleanUrlParts.length - 2] || cleanUrlParts[cleanUrlParts.length - 1];
+                        cleanName = potentialName ? potentialName.replace(/[-_]/g, ' ').toUpperCase() : "CANLI YAYIN KANALI";
+                    }
+
+                    if (streamUrl) {
+                        channels.push({
+                            name: cleanName,
+                            logo: currentLogo,
+                            url: streamUrl
+                        });
+                    }
+                    rawName = "";
+                    currentLogo = "";
+                }
+            }
+            allChannels = channels;
+            renderChannels(allChannels);
+        }
+
+        function renderChannels(channels) {
+            const listContainer = document.getElementById('channelList');
+            listContainer.innerHTML = '';
+
+            if (channels.length === 0) {
+                listContainer.innerHTML = '<div style="padding:20px; text-align:center; color:#64748b;">Kanal bulunamadı.</div>';
+                return;
+            }
+
+            channels.forEach((channel) => {
+                const div = document.createElement('div');
+                div.className = 'channel-item';
+                
+                let logoHtml = channel.logo 
+                    ? `<img src="${channel.logo}" class="channel-logo" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/tv.svg';">`
+                    : `<div class="channel-logo" style="display:flex;align-items:center;justify-content:center;color:#38bdf8;"><i class="fa-solid fa-tv" style="font-size:0.9rem;"></i></div>`;
+
+                div.innerHTML = `
+                    ${logoHtml}
+                    <span class="channel-name">${channel.name}</span>
+                `;
+                
+                div.onclick = () => {
+                    playChannel(channel, div);
+                    if (window.innerWidth <= 768) toggleSidebar();
+                };
+                listContainer.appendChild(div);
+            });
+        }
+
+        function showAlert(message, isSuccess = false) {
+            const alertBox = document.getElementById('streamAlert');
+            const alertText = document.getElementById('alertText');
+            const alertIcon = document.getElementById('alertIcon');
+            
+            alertText.innerText = message;
+            alertBox.className = `stream-alert ${isSuccess ? 'success' : ''}`;
+            alertIcon.className = isSuccess ? "fa-solid fa-circle-check" : "fa-solid fa-triangle-exclamation";
+            alertBox.style.display = 'flex';
+
+            if (!isSuccess) {
+                setTimeout(() => { hideAlert(); }, 5000);
+            }
+        }
+
+        function hideAlert() {
+            document.getElementById('streamAlert').style.display = 'none';
+        }
+
+        function playChannel(channel, element) {
+            document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
+
+            currentUrl = channel.url;
+            document.getElementById('currentChannelName').innerHTML = `<i class="fa-solid fa-circle-dot" style="color: #22c55e; font-size: 0.8rem;"></i> ${channel.name}`;
+            showAlert("Yayın yükleniyor ve test ediliyor...", true);
+
+            if (Hls.isSupported()) {
+                if (hls) hls.destroy();
+                hls = new Hls();
+                hls.loadSource(channel.url);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(() => {});
+                    updatePlayIcon(true);
+                    hideAlert();
+                });
+
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                showAlert("Hata: Bu yayın kaynağı (ölü link) şu an yanıt vermiyor!");
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                showAlert("Hata: Medya akışı çözülemedi veya format desteklenmiyor.");
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                showAlert("Bağlantı kurulamadı, yayın kapalı olabilir.");
+                                hls.destroy();
+                                break;
+                        }
+                    }
+                });
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = channel.url;
+                video.addEventListener('loadedmetadata', () => {
+                    video.play().catch(() => {});
+                    updatePlayIcon(true);
+                    hideAlert();
+                });
+                video.addEventListener('error', () => {
+                    showAlert("Hata: Bu kanalın bağlantısı çalışmıyor veya erişilemez.");
+                });
+            }
+        }
+
+        function togglePlayPause() {
+            if (video.paused) {
+                video.play();
+                updatePlayIcon(true);
+            } else {
+                video.pause();
+                updatePlayIcon(false);
+            }
+        }
+
+        function updatePlayIcon(isPlaying) {
+            const icon = document.getElementById('playPauseIcon');
+            icon.className = isPlaying ? "fa-solid fa-pause" : "fa-solid fa-play";
+        }
+
+        function reloadStream() {
+            if (currentUrl) {
+                video.src = "";
+                if (hls) hls.destroy();
+                let activeItem = document.querySelector('.channel-item.active');
+                if (activeItem) activeItem.click();
+            }
+        }
+
+        function changeVolume(value) {
+            video.volume = value;
+            document.getElementById('volumeIcon').className = (value == 0) ? "fa-solid fa-volume-xmark" : "fa-solid fa-volume-high";
+        }
+
+        function toggleMute() {
+            if (video.muted) {
+                video.muted = false;
+                document.getElementById('volumeIcon').className = "fa-solid fa-volume-high";
+                document.getElementById('volumeSlider').value = video.volume;
+            } else {
+                video.muted = true;
+                document.getElementById('volumeIcon').className = "fa-solid fa-volume-xmark";
+                document.getElementById('volumeSlider').value = 0;
+            }
+        }
+
+        function toggleFullscreen() {
+            const wrapper = document.getElementById('videoWrapper');
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (wrapper.requestFullscreen) {
+                    wrapper.requestFullscreen().catch(err => console.log(err));
+                } else if (wrapper.webkitRequestFullscreen) {
+                    wrapper.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
+        document.addEventListener('fullscreenchange', updateFullscreenIcon);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+
+        function updateFullscreenIcon() {
+            const icon = document.getElementById('fullscreenIcon');
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                icon.className = "fa-solid fa-compress";
+            } else {
+                icon.className = "fa-solid fa-expand";
+            }
+        }
+
+        function filterChannels() {
+            let query = document.getElementById('search').value.toLowerCase();
+            let filtered = allChannels.filter(c => c.name.toLowerCase().includes(query));
+            renderChannels(filtered);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        function closeSidebarOnMobile() {
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>

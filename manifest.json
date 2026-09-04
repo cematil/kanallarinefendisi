@@ -1,0 +1,17 @@
+{
+  "name": "Kanalların Efendisi | Global Media Portal",
+  "short_name": "Kanalların Efendisi",
+  "start_url": "./index.html",
+  "id": "/kanallarinefendisi/index.html",
+  "display": "standalone",
+  "background_color": "#07090e",
+  "theme_color": "#0f141d",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
