@@ -590,6 +590,11 @@
         }
 
         function loadProtectedStream(code) {
+            if (code === 'public/index.html' || code.endsWith('.html')) {
+                window.location.href = code;
+                return;
+            }
+
             document.getElementById('countriesView').style.display = 'none';
             document.getElementById('sidebar').classList.add('active');
             document.getElementById('playerContainer').classList.add('active');
