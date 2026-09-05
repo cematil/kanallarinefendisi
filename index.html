@@ -410,6 +410,7 @@
         const countries = [
             { code: "tr", name: "Türkiye", flag: "fi fi-tr" },
             { code: "tryedek", name: "Türkiye Yedek", flag: "fi fi-tr" },
+            { code: "public/index.html", name: "Türkiye Yedek 2", flag: "fi fi-tr" },
             { code: "ad", name: "Andorra", flag: "fi fi-ad" },
             { code: "ae", name: "Birleşik Arap Emirlikleri", flag: "fi fi-ae" },
             { code: "af", name: "Afganistan", flag: "fi fi-af" },
@@ -564,7 +565,7 @@
             grid.innerHTML = '';
             list.forEach(c => {
                 const card = document.createElement('div');
-                let isTr = (c.code === 'tr' || c.code === 'tryedek');
+                let isTr = (c.code === 'tr' || c.code === 'tryedek' || c.code === 'public/index.html');
                 card.className = `country-card ${isTr ? 'tr-highlight' : ''}`;
                 card.innerHTML = `
                     <span class="${c.flag}"></span>
@@ -598,7 +599,7 @@
 
             document.getElementById('channelList').innerHTML = `<div style="padding: 20px; text-align: center; color: #64748b;">${code.toUpperCase()} yerel dosyası okunuyor...</div>`;
 
-            const localFileName = `${code}.m3u`;
+            const localFileName = code.includes('/') || code.includes('.') ? code : `${code}.m3u`;
 
             fetch(localFileName)
                 .then(res => {
