@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanalların Efendisi - Node.js IPTV</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            user-select: none; 
+            -webkit-user-select: none; 
+            -ms-user-select: none; 
+            -webkit-touch-callout: none;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #121212; color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        #sidebar { width: 340px; background: #1a1a1a; overflow-y: auto; border-right: 1px solid #333; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+        #sidebar h3 { font-size: 18px; color: #00adb5; margin: 0; }
+        
+        .search-input { background: #222; border: 1px solid #444; color: #fff; padding: 10px 12px; border-radius: 5px; font-size: 13px; outline: none; width: 100%; user-select: text; -webkit-user-select: text; }
+        .search-input:focus { border-color: #00adb5; }
+
+        .category-header { 
+            background: #222831; 
+            color: #00adb5; 
+            padding: 10px 12px; 
+            font-weight: bold; 
+            border-left: 4px solid #00adb5; 
+            margin-top: 5px; 
+            font-size: 13px; 
+            text-transform: uppercase; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            user-select: none;
+            border-radius: 0 4px 4px 0;
+            transition: background 0.2s;
+        }
+        .category-header:hover { background: #2c3440; }
+        .category-header .arrow { font-size: 11px; transition: transform 0.3s; }
+        .category-header.open .arrow { transform: rotate(90deg); }
+
+        .category-channels { 
+            display: none; 
+            flex-direction: column;
+            background: #161616;
+        }
+        .category-channels.show { display: flex; }
+        
+        .channel-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #222; font-size: 13px; transition: background 0.2s; }
+        .channel-item:hover { background: #2a2a2a; }
+        .channel-item.active { background: #00adb5; color: #fff; font-weight: bold; }
+        
+        #player-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; position: relative; }
+        
+        /* Video ve Kontrol Barı Stilleri */
+        video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            pointer-events: auto; /* Tıklama ve Kontrol Barı Etkileşimi Aktif */
+            outline: none;
+        }
+
+        #fullscreen-controls {
+            display: none;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            gap: 10px;
+        }
+
+        .fs-btn {
+            background: rgba(0, 173, 181, 0.85);
+            border: none;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            backdrop-filter: blur(4px);
+            transition: background 0.2s;
+        }
+        .fs-btn:hover { background: #00888e; }
+
+        #fullscreen-menu {
+            display: none;
+            position: absolute;
+            top: 65px;
+            right: 20px;
+            width: 320px;
+            max-height: 80vh;
+            background: rgba(26, 26, 26, 0.95);
+            border: 1px solid #333;
+            border-radius: 8px;
+            z-index: 9999;
+            padding: 15px;
+            overflow-y: auto;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body oncopy="return false" oncut="return false" onpaste="return false">
+
+    <div id="sidebar">
+        <h3>Kanalların Efendisi</h3>
+        <input type="text" class="search-input" placeholder="Kanal Ara..." onkeyup="filterChannels(this.value, 'channels')">
+        <div id="channels">Kanal listesi yükleniyor...</div>
+    </div>
+
+    <div id="player-container">
+        <div id="fullscreen-controls">
+            <button class="fs-btn" onclick="toggleFsMenu()">📋 Kanal Listesi</button>
+            <button class="fs-btn" onclick="exitFullscreen()">✕ Tam Ekrandan Çık</button>
+        </div>
+
+        <div id="fullscreen-menu">
+            <input type="text" class="search-input" placeholder="Kanal Ara..." onkeyup="filterChannels(this.value, 'fs-channels')" style="margin-bottom: 10px;">
+            <div id="fs-channels"></div>
+        </div>
+
+        <!-- Video Kontrol Çubuğu (Play, Pause, Ses, Süre Barı, Tam Ekran) -->
+        <video id="video" controls autoplay crossorigin="anonymous" playsinline></video>
+    </div>
+
+    <script>
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        document.addEventListener('keydown', e => {
+            if (
+                e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+                (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.key === 'S' || e.key === 's')) ||
+                e.key === 'PrintScreen'
+            ) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        window.addEventListener('keyup', e => {
+            if (e.key === 'PrintScreen') {
+                navigator.clipboard.writeText('');
+            }
+        });
+
+        const video = document.getElementById('video');
+        const fsControls = document.getElementById('fullscreen-controls');
+        const fsMenu = document.getElementById('fullscreen-menu');
+        let hlsPlayer = null;
+        let allChannels = [];
+
+        document.addEventListener('fullscreenchange', toggleFullscreenState);
+        document.addEventListener('webkitfullscreenchange', toggleFullscreenState);
+        document.addEventListener('msfullscreenchange', toggleFullscreenState);
+
+        function toggleFullscreenState() {
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+            if (isFullscreen) {
+                fsControls.style.display = 'flex';
+            } else {
+                fsControls.style.display = 'none';
+                fsMenu.style.display = 'none';
+            }
+        }
+
+        function exitFullscreen() {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            else if (document.msExitFullscreen) document.msExitFullscreen();
+        }
+
+        function toggleFsMenu() {
+            fsMenu.style.display = (fsMenu.style.display === 'block') ? 'none' : 'block';
+        }
+
+        fetch('/api/channels')
+            .then(r => r.json())
+            .then(channels => {
+                allChannels = channels;
+                renderChannels(channels, 'channels');
+                renderChannels(channels, 'fs-channels');
+            })
+            .catch(err => {
+                document.getElementById('channels').innerText = 'Kanallar yüklenemedi!';
+            });
+
+        function renderChannels(channels, containerId, isSearching = false) {
+            const div = document.getElementById(containerId);
+            div.innerHTML = '';
+
+            const categories = {};
+            channels.forEach(ch => {
+                const cat = ch.category || 'Genel';
+                if (!categories[cat]) categories[cat] = [];
+                categories[cat].push(ch);
+            });
+
+            for (const cat in categories) {
+                const catHeader = document.createElement('div');
+                catHeader.className = 'category-header' + (isSearching ? ' open' : '');
+                catHeader.innerHTML = `<span>${cat} (${categories[cat].length})</span><span class="arrow">▶</span>`;
+                
+                const catChannelsDiv = document.createElement('div');
+                catChannelsDiv.className = 'category-channels' + (isSearching ? ' show' : '');
+
+                catHeader.onclick = () => {
+                    const isOpen = catChannelsDiv.classList.contains('show');
+                    if (isOpen) {
+                        catChannelsDiv.classList.remove('show');
+                        catHeader.classList.remove('open');
+                    } else {
+                        catChannelsDiv.classList.add('show');
+                        catHeader.classList.add('open');
+                    }
+                };
+
+                categories[cat].forEach(ch => {
+                    const item = document.createElement('div');
+                    item.className = 'channel-item';
+                    item.innerText = ch.name;
+                    item.onclick = () => {
+                        document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+                        item.classList.add('active');
+                        
+                        const proxyUrl = '/proxy?url=' + encodeURIComponent(ch.url);
+                        playStream(proxyUrl, ch.url);
+
+                        fsMenu.style.display = 'none';
+                    };
+                    catChannelsDiv.appendChild(item);
+                });
+
+                div.appendChild(catHeader);
+                div.appendChild(catChannelsDiv);
+            }
+        }
+
+        function filterChannels(query, containerId) {
+            const q = query.toLowerCase();
+            const filtered = allChannels.filter(ch => ch.name.toLowerCase().includes(q));
+            renderChannels(filtered, containerId, q.length > 0);
+        }
+
+        function playStream(proxyUrl, originalUrl) {
+            if (hlsPlayer) {
+                hlsPlayer.destroy();
+                hlsPlayer = null;
+            }
+
+            if (Hls.isSupported()) {
+                hlsPlayer = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: false,
+                    liveSyncDurationCount: 3,
+                    liveMaxLatencyDurationCount: 10,
+                    liveDurationInfinity: true,
+                    manifestLoadingTimeOut: 10000,
+                    manifestLoadingMaxRetry: 5,
+                    fragLoadingTimeOut: 10000,
+                    fragLoadingMaxRetry: 5
+                });
+                
+                hlsPlayer.loadSource(proxyUrl);
+                hlsPlayer.attachMedia(video);
+                
+                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(e => console.log("Oynatma hatası:", e));
+                });
+                
+                hlsPlayer.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                hlsPlayer.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hlsPlayer.recoverMediaError();
+                                break;
+                            default:
+                                hlsPlayer.startLoad();
+                                break;
+                        }
+                    }
+                });
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = proxyUrl;
+                video.play();
+            }
+        }
+    </script>
+</body>
+</html>
