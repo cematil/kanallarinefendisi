@@ -708,8 +708,15 @@
                 const div = document.createElement('div');
                 div.className = 'channel-item';
                 
-                let logoHtml = channel.logo 
-                    ? `<img src="${channel.logo}" class="channel-logo" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/tv.svg';">`
+                let logoUrl = channel.logo || channel['tvg-logo'] || channel.tvgLogo || channel.icon || channel.image || '';
+                if (logoUrl && logoUrl.startsWith('http://') && window.location.protocol === 'https:') {
+                    logoUrl = '/proxy?url=' + encodeURIComponent(logoUrl);
+                }
+
+                const defaultTvSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z'/></svg>";
+
+                let logoHtml = logoUrl 
+                    ? `<img src="${logoUrl}" class="channel-logo" onerror="this.onerror=null;this.src='${defaultTvSvg}';">`
                     : `<div class="channel-logo" style="display:flex;align-items:center;justify-content:center;color:#38bdf8;"><i class="fa-solid fa-tv" style="font-size:0.9rem;"></i></div>`;
 
                 div.innerHTML = `
@@ -734,8 +741,15 @@
                 item.className = 'fs-channel-item';
                 if (channel.url === currentUrl) item.classList.add('active');
 
-                let logoHtml = channel.logo 
-                    ? `<img src="${channel.logo}" class="fs-channel-logo" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/tv.svg';">`
+                let logoUrl = channel.logo || channel['tvg-logo'] || channel.tvgLogo || channel.icon || channel.image || '';
+                if (logoUrl && logoUrl.startsWith('http://') && window.location.protocol === 'https:') {
+                    logoUrl = '/proxy?url=' + encodeURIComponent(logoUrl);
+                }
+
+                const defaultTvSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z'/></svg>";
+
+                let logoHtml = logoUrl 
+                    ? `<img src="${logoUrl}" class="fs-channel-logo" onerror="this.onerror=null;this.src='${defaultTvSvg}';">`
                     : `<div class="fs-channel-logo" style="display:flex;align-items:center;justify-content:center;color:#38bdf8;"><i class="fa-solid fa-tv" style="font-size:0.7rem;"></i></div>`;
 
                 item.innerHTML = `
