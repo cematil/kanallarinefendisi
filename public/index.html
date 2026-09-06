@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kanalların Efendisi - Node.js IPTV</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
@@ -15,9 +15,28 @@
         }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #121212; color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        #sidebar { width: 340px; background: #1a1a1a; overflow-y: auto; border-right: 1px solid #333; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+        #sidebar { width: 340px; background: #1a1a1a; overflow-y: auto; border-right: 1px solid #333; padding: 15px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
         #sidebar h3 { font-size: 18px; color: #00adb5; margin: 0; }
         
+        /* Sol Üst main.html Dış Bağlantı Linki */
+        .external-link-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #222831;
+            color: #00adb5;
+            text-decoration: none;
+            padding: 10px 12px;
+            border: 1px solid #00adb5;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .external-link-btn:hover { background: #00adb5; color: #fff; }
+
         .search-input { background: #222; border: 1px solid #444; color: #fff; padding: 10px 12px; border-radius: 5px; font-size: 13px; outline: none; width: 100%; user-select: text; -webkit-user-select: text; }
         .search-input:focus { border-color: #00adb5; }
 
@@ -49,48 +68,66 @@
         }
         .category-channels.show { display: flex; }
         
-        .channel-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #222; font-size: 13px; transition: background 0.2s; }
+        .channel-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            padding: 8px 12px; 
+            cursor: pointer; 
+            border-bottom: 1px solid #222; 
+            font-size: 13px; 
+            transition: background 0.2s; 
+        }
         .channel-item:hover { background: #2a2a2a; }
         .channel-item.active { background: #00adb5; color: #fff; font-weight: bold; }
         
-        #player-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; position: relative; }
+        /* Logo Stilleri */
+        .channel-logo {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+            background: #222;
+            border-radius: 4px;
+            padding: 2px;
+            flex-shrink: 0;
+        }
+        .channel-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #player-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #000; position: relative; }
         
-        /* Video ve Kontrol Barı Stilleri */
+        /* Video Stilleri */
         video { 
             width: 100%; 
             height: 100%; 
+            max-height: 100vh;
             object-fit: contain; 
-            pointer-events: auto; /* Tıklama ve Kontrol Barı Etkileşimi Aktif */
+            pointer-events: auto;
             outline: none;
         }
 
-        /* Mobil/Masaüstü için Tam Ekran Butonları Katmanı */
-        #video-overlay-controls {
+        /* Mobil ve Ekran Kontrol Butonları */
+        .mobile-controls-bar {
             position: absolute;
-            top: 15px;
+            bottom: 15px;
             right: 15px;
-            z-index: 9999;
+            z-index: 900;
             display: flex;
-            gap: 10px;
-        }
-
-        #fullscreen-controls {
-            display: none;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            gap: 10px;
+            gap: 8px;
         }
 
         .fs-btn {
-            background: rgba(0, 173, 181, 0.85);
+            background: rgba(0, 173, 181, 0.9);
             border: none;
             color: #fff;
-            padding: 10px 16px;
+            padding: 8px 14px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             backdrop-filter: blur(4px);
             transition: background 0.2s;
@@ -98,50 +135,31 @@
         }
         .fs-btn:hover { background: #00888e; }
 
-        #fullscreen-menu {
-            display: none;
-            position: absolute;
-            top: 65px;
-            right: 20px;
-            width: 320px;
-            max-height: 80vh;
-            background: rgba(26, 26, 26, 0.95);
-            border: 1px solid #333;
-            border-radius: 8px;
-            z-index: 9999;
-            padding: 15px;
-            overflow-y: auto;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        /* Mobil/Tablet Ekran Düzenlemesi */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            #sidebar { width: 100%; height: 50vh; border-right: none; border-bottom: 1px solid #333; }
+            #player-container { width: 100%; height: 50vh; }
         }
     </style>
 </head>
 <body oncopy="return false" oncut="return false" onpaste="return false">
 
     <div id="sidebar">
+        <!-- Sol Üst main.html Dış Bağlantı Linki -->
+        <a href="/main.html" class="external-link-btn">🌐 Diğer Ülke Kanalları (main.html)</a>
+        
         <h3>Kanalların Efendisi</h3>
         <input type="text" class="search-input" placeholder="Kanal Ara..." onkeyup="filterChannels(this.value, 'channels')">
         <div id="channels">Kanal listesi yükleniyor...</div>
     </div>
 
     <div id="player-container">
-        <!-- Mobil / Normal Modda Görünür Tam Ekran Yap Butonu -->
-        <div id="video-overlay-controls">
-            <button class="fs-btn" id="enter-fs-btn" onclick="requestFullscreen()">⛶ Tam Ekran Yap</button>
+        <!-- Doğrudan Videoyu Tam Ekran Yapan Buton -->
+        <div class="mobile-controls-bar">
+            <button class="fs-btn" onclick="toggleDirectVideoFullscreen()">⛶ Tam Ekran Yap / Çık</button>
         </div>
 
-        <!-- Tam Ekran Moduna Geçildiğinde Görünür Butonlar -->
-        <div id="fullscreen-controls">
-            <button class="fs-btn" onclick="toggleFsMenu()">📋 Kanal Listesi</button>
-            <button class="fs-btn" onclick="exitFullscreen()">✕ Tam Ekrandan Çık</button>
-        </div>
-
-        <div id="fullscreen-menu">
-            <input type="text" class="search-input" placeholder="Kanal Ara..." onkeyup="filterChannels(this.value, 'fs-channels')" style="margin-bottom: 10px;">
-            <div id="fs-channels"></div>
-        </div>
-
-        <!-- Video Kontrol Çubuğu (Play, Pause, Ses, Süre Barı, Tam Ekran) -->
         <video id="video" controls autoplay crossorigin="anonymous" playsinline webkit-playsinline></video>
     </div>
 
@@ -167,57 +185,26 @@
         });
 
         const video = document.getElementById('video');
-        const playerContainer = document.getElementById('player-container');
-        const enterFsBtn = document.getElementById('enter-fs-btn');
-        const fsControls = document.getElementById('fullscreen-controls');
-        const fsMenu = document.getElementById('fullscreen-menu');
         let hlsPlayer = null;
         let allChannels = [];
 
-        document.addEventListener('fullscreenchange', toggleFullscreenState);
-        document.addEventListener('webkitfullscreenchange', toggleFullscreenState);
-        document.addEventListener('msfullscreenchange', toggleFullscreenState);
-
-        function toggleFullscreenState() {
-            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
-            if (isFullscreen) {
-                fsControls.style.display = 'flex';
-                enterFsBtn.style.display = 'none';
+        // Videoyu Doğrudan Cihaz Ekranında Tam Ekran Yapma Fonksiyonu
+        function toggleDirectVideoFullscreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (video.requestFullscreen) {
+                    video.requestFullscreen();
+                } else if (video.webkitRequestFullscreen) {
+                    video.webkitRequestFullscreen();
+                } else if (video.webkitEnterFullscreen) {
+                    video.webkitEnterFullscreen(); // iOS Safari için
+                }
             } else {
-                fsControls.style.display = 'none';
-                fsMenu.style.display = 'none';
-                enterFsBtn.style.display = 'block';
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
             }
-        }
-
-        // Mobil Uyumlu Tam Ekran Yapma Fonksiyonu
-        function requestFullscreen() {
-            const target = playerContainer;
-            if (target.requestFullscreen) {
-                target.requestFullscreen().catch(err => console.log(err));
-            } else if (target.webkitRequestFullscreen) {
-                target.webkitRequestFullscreen();
-            } else if (target.msRequestFullscreen) {
-                target.msRequestFullscreen();
-            } else if (video.webkitEnterFullscreen) {
-                // iOS Safari Desteği
-                video.webkitEnterFullscreen();
-            }
-        }
-
-        // Mobil Uyumlu Tam Ekrandan Çıkma Fonksiyonu
-        function exitFullscreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
-        }
-
-        function toggleFsMenu() {
-            fsMenu.style.display = (fsMenu.style.display === 'block') ? 'none' : 'block';
         }
 
         fetch('/api/channels')
@@ -225,7 +212,6 @@
             .then(channels => {
                 allChannels = channels;
                 renderChannels(channels, 'channels');
-                renderChannels(channels, 'fs-channels');
             })
             .catch(err => {
                 document.getElementById('channels').innerText = 'Kanallar yüklenemedi!';
@@ -264,15 +250,27 @@
                 categories[cat].forEach(ch => {
                     const item = document.createElement('div');
                     item.className = 'channel-item';
-                    item.innerText = ch.name;
+                    
+                    // Logo değişkenlerinin kontrolü
+                    let logoUrl = ch.logo || ch['tvg-logo'] || ch.tvgLogo || ch.icon || ch.image || '';
+                    if (logoUrl && logoUrl.startsWith('http://') && window.location.protocol === 'https:') {
+                        logoUrl = '/proxy?url=' + encodeURIComponent(logoUrl);
+                    }
+
+                    const defaultTvSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300adb5'><path d='M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z'/></svg>";
+
+                    const logoHtml = logoUrl 
+                        ? `<img src="${logoUrl}" class="channel-logo" onerror="this.onerror=null; this.src='${defaultTvSvg}';">`
+                        : `<img src="${defaultTvSvg}" class="channel-logo">`;
+
+                    item.innerHTML = `${logoHtml}<span class="channel-name">${ch.name}</span>`;
+
                     item.onclick = () => {
                         document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
                         
                         const proxyUrl = '/proxy?url=' + encodeURIComponent(ch.url);
                         playStream(proxyUrl, ch.url);
-
-                        fsMenu.style.display = 'none';
                     };
                     catChannelsDiv.appendChild(item);
                 });
