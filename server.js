@@ -18,9 +18,21 @@ app.use((req, res, next) => {
 });
 
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
 
-// M3U Ayrıştırma (trtr.m3u olarak güncellendi)
+// Hem 'public' klasörünü hem de ana kök dizini statik dosya sunumuna açıyoruz
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
+
+// HTML Rotaları (/main.html Hatasını Çözen Bölüm)
+app.get('/main.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'main.html'));
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// M3U Ayrıştırma (tvg-logo ve trtr.m3u desteğiyle güncellendi)
 function parseM3U(filePath) {
     const channels = [];
     if (!fs.existsSync(filePath)) return channels;
@@ -38,9 +50,14 @@ function parseM3U(filePath) {
             const groupMatch = line.match(/group-title="([^"]+)"/);
             let category = groupMatch ? groupMatch[1].replace('┃TR┃', '').trim() : 'Diğer';
 
+            // Kanal Logosu Yakalama
+            const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+            let logo = logoMatch ? logoMatch[1].trim() : '';
+
             currentChannel = {
                 name: name,
-                category: category || 'Genel'
+                category: category || 'Genel',
+                logo: logo
             };
         } else if (line.startsWith('http')) {
             if (currentChannel.name) {
