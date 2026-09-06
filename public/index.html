@@ -122,26 +122,60 @@
         .modal-btn:hover { background: #00888e; }
         
         #sidebar { width: 340px; background: #1a1a1a; overflow-y: auto; border-right: 1px solid #333; padding: 15px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
-        #sidebar h3 { font-size: 18px; color: #00adb5; margin: 0; }
         
-        /* Sol Üst main.html Dış Bağlantı Linki */
+        .sidebar-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sidebar-title h3 {
+            font-size: 18px;
+            color: #00adb5;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .sidebar-title .sub-info {
+            font-size: 11px;
+            color: #ffc107;
+            font-weight: normal;
+        }
+
+        /* Dikkat Çekici ve Hareketli main.html Bağlantı Linki */
         .external-link-btn {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            background: #222831;
-            color: #00adb5;
+            background: linear-gradient(135deg, #112e34 0%, #00383b 100%);
+            color: #00fff5;
             text-decoration: none;
-            padding: 10px 12px;
-            border: 1px solid #00adb5;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-            transition: all 0.2s ease;
+            padding: 12px 14px;
+            border: 2px solid #00adb5;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
             text-align: center;
+            box-shadow: 0 0 12px rgba(0, 173, 181, 0.4);
+            animation: glowPulse 2s infinite ease-in-out;
+            transition: transform 0.2s ease;
         }
-        .external-link-btn:hover { background: #00adb5; color: #fff; }
+        .external-link-btn:hover { 
+            background: #00adb5; 
+            color: #121212; 
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(0, 255, 245, 0.8);
+        }
+
+        @keyframes glowPulse {
+            0% { box-shadow: 0 0 8px rgba(0, 173, 181, 0.3); border-color: #00adb5; }
+            50% { box-shadow: 0 0 18px rgba(0, 255, 245, 0.8); border-color: #00fff5; }
+            100% { box-shadow: 0 0 8px rgba(0, 173, 181, 0.3); border-color: #00adb5; }
+        }
 
         .search-input { background: #222; border: 1px solid #444; color: #fff; padding: 10px 12px; border-radius: 5px; font-size: 13px; outline: none; width: 100%; user-select: text; -webkit-user-select: text; }
         .search-input:focus { border-color: #00adb5; }
@@ -279,10 +313,13 @@
     </div>
 
     <div id="sidebar">
-        <!-- Sol Üst main.html Dış Bağlantı Linki -->
-        <a href="/main.html" class="external-link-btn">🌐 Diğer Ülke Kanalları (main.html)</a>
+        <!-- Dikkat Çekici Dış Bağlantı Linki -->
+        <a href="/main.html" class="external-link-btn">🌍 Diğer Ülke Kanalları</a>
         
-        <h3>Kanalların Efendisi</h3>
+        <div class="sidebar-title">
+            <h3>Kanalların Efendisi <span class="sub-info">(📱 Tam Ekran İçin Telefonu Yan Çevirin)</span></h3>
+        </div>
+
         <input type="text" class="search-input" placeholder="Kanal Ara..." onkeyup="filterChannels(this.value, 'channels')">
         <div id="channels">Kanal listesi yükleniyor...</div>
     </div>
@@ -339,7 +376,7 @@
         let hlsPlayer = null;
         let allChannels = [];
 
-        // Videoyu Doğrudan Cihaz Ekranında Tam Ekran Yapma Fonksiyonu (Resimdeki Hatayı Çözen Kısım)
+        // Videoyu Doğrudan Cihaz Ekranında Tam Ekran Yapma Fonksiyonu
         function toggleDirectVideoFullscreen() {
             if (!document.fullscreenElement && !document.webkitFullscreenElement) {
                 if (video.requestFullscreen) {
@@ -450,10 +487,13 @@
                     liveSyncDurationCount: 3,
                     liveMaxLatencyDurationCount: 10,
                     liveDurationInfinity: true,
-                    manifestLoadingTimeOut: 10000,
+                    manifestLoadingTimeOut: 15000,
                     manifestLoadingMaxRetry: 5,
-                    fragLoadingTimeOut: 10000,
-                    fragLoadingMaxRetry: 5
+                    fragLoadingTimeOut: 15000,
+                    fragLoadingMaxRetry: 5,
+                    maxBufferLength: 30,           // Yüksek buffer desteği (30 sn)
+                    maxMaxBufferLength: 60,        // Maksimum buffer desteği (60 sn)
+                    maxBufferSize: 60 * 1024 * 1024 // 60 MB bellek tamponu
                 });
                 
                 hlsPlayer.loadSource(proxyUrl);
