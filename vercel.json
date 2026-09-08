@@ -5,7 +5,13 @@
       "src": "server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["tryedek.m3u", "trtr.m3u", "index.html", "main.html"]
+        "includeFiles": [
+          "trtr.m3u",
+          "tryedek.m3u",
+          "*.m3u",
+          "index.html",
+          "main.html"
+        ]
       }
     }
   ],
