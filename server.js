@@ -19,20 +19,20 @@ app.use((req, res, next) => {
 
 app.use(cors());
 
-// Hem 'public' klasörünü hem de ana kök dizini statik dosya sunumuna açıyoruz
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname));
+// Statik Dosyalar
+app.use(express.static(path.join(process.cwd(), 'public')));
+app.use(express.static(process.cwd()));
 
-// HTML Rotaları (/main.html Hatasını Çözen Bölüm)
+// HTML Rotaları
 app.get('/main.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'main.html'));
+    res.sendFile(path.join(process.cwd(), 'main.html'));
 });
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(process.cwd(), 'index.html'));
 });
 
-// M3U Ayrıştırma (tvg-logo ve trtr.m3u desteğiyle güncellendi)
+// M3U Ayrıştırma
 function parseM3U(filePath) {
     const channels = [];
     if (!fs.existsSync(filePath)) return channels;
@@ -50,7 +50,6 @@ function parseM3U(filePath) {
             const groupMatch = line.match(/group-title="([^"]+)"/);
             let category = groupMatch ? groupMatch[1].replace('┃TR┃', '').trim() : 'Diğer';
 
-            // Kanal Logosu Yakalama
             const logoMatch = line.match(/tvg-logo="([^"]+)"/);
             let logo = logoMatch ? logoMatch[1].trim() : '';
 
@@ -72,7 +71,13 @@ function parseM3U(filePath) {
 }
 
 app.get('/api/channels', (req, res) => {
-    const channels = parseM3U(path.join(__dirname, 'trtr.m3u'));
+    // Hem tryedek.m3u hem de trtr.m3u dosyalarını kontrol eder
+    let fileToRead = path.join(process.cwd(), 'tryedek.m3u');
+    if (!fs.existsSync(fileToRead)) {
+        fileToRead = path.join(process.cwd(), 'trtr.m3u');
+    }
+
+    const channels = parseM3U(fileToRead);
     res.json(channels);
 });
 
@@ -154,6 +159,11 @@ app.get('/proxy', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Node.js IPTV Sunucusu http://localhost:${PORT} adresinde aktif.`);
-});
+// Yerel çalıştırma için (Vercel doğrudan 'app' nesnesini kullanır)
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Node.js IPTV Sunucusu http://localhost:${PORT} adresinde aktif.`);
+    });
+}
+
+module.exports = app;
