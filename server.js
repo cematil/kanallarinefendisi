@@ -19,7 +19,7 @@ app.use((req, res, next) => {
 
 app.use(cors());
 
-// Statik Dosyalar
+// Statik Dosya Sunumu
 app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(express.static(process.cwd()));
 
@@ -32,7 +32,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'index.html'));
 });
 
-// M3U Ayrıştırma
+// M3U Ayrıştırma Fonksiyonu
 function parseM3U(filePath) {
     const channels = [];
     if (!fs.existsSync(filePath)) return channels;
@@ -70,18 +70,17 @@ function parseM3U(filePath) {
     return channels;
 }
 
+// Esnek Kanal API Rotası
 app.get('/api/channels', (req, res) => {
-    // Hem tryedek.m3u hem de trtr.m3u dosyalarını kontrol eder
-    let fileToRead = path.join(process.cwd(), 'tryedek.m3u');
-    if (!fs.existsSync(fileToRead)) {
-        fileToRead = path.join(process.cwd(), 'trtr.m3u');
-    }
+    // Parametre verilmişse onu al, yoksa varsayılan olarak trtr.m3u oku
+    const fileName = req.query.file || 'trtr.m3u';
+    const filePath = path.join(process.cwd(), fileName);
 
-    const channels = parseM3U(fileToRead);
+    const channels = parseM3U(filePath);
     res.json(channels);
 });
 
-// Yayın Çekme Fonksiyonu
+// Yayın Çekme (Proxy) Fonksiyonu
 function fetchStream(targetUrl, callback) {
     const parsedUrl = new URL(targetUrl);
     const client = parsedUrl.protocol === 'https:' ? https : http;
@@ -124,7 +123,6 @@ app.get('/proxy', (req, res) => {
         }
 
         if (remoteRes.statusCode === 403) {
-            console.error("Proxy Hatası: Request failed with status code 403");
             return res.status(403).send('Access Denied');
         }
 
@@ -159,7 +157,6 @@ app.get('/proxy', (req, res) => {
     });
 });
 
-// Yerel çalıştırma için (Vercel doğrudan 'app' nesnesini kullanır)
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`Node.js IPTV Sunucusu http://localhost:${PORT} adresinde aktif.`);
